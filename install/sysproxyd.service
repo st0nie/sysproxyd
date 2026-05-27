@@ -1,0 +1,17 @@
+[Unit]
+Description=System Proxy Daemon
+Documentation=https://github.com/st0nie/sysproxyd
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/sysproxyd
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sysproxyd
+
+[Install]
+WantedBy=graphical-session.target
