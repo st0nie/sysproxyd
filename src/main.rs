@@ -7,9 +7,16 @@ use sysproxyd::env_manager::EnvManager;
 use sysproxyd::gsettings;
 
 fn main() {
-    env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Info)
-        .init();
+    let no_timestamp = std::env::args().any(|arg| arg == "--no-timestamp");
+
+    let mut builder = env_logger::Builder::from_default_env();
+    builder.filter_level(log::LevelFilter::Info);
+
+    if no_timestamp {
+        builder.format_timestamp(None);
+    }
+
+    builder.init();
     info!("sysproxyd starting...");
 
     let env_manager = Arc::new(EnvManager::new());

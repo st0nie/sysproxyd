@@ -111,7 +111,6 @@ impl ProxyConfig {
             no_proxy: Vec::new(),
         }
     }
-
 }
 
 const URL_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::NON_ALPHANUMERIC
@@ -179,8 +178,8 @@ mod tests {
 
     #[test]
     fn test_proxy_server_with_auth() {
-        let server = ProxyServer::new("proxy.example.com", 8080)
-            .with_auth(ProxyAuth::new("user", "pass"));
+        let server =
+            ProxyServer::new("proxy.example.com", 8080).with_auth(ProxyAuth::new("user", "pass"));
         assert!(server.auth.is_some());
         assert_eq!(server.auth.as_ref().unwrap().username, "user");
     }
@@ -193,15 +192,21 @@ mod tests {
 
     #[test]
     fn test_proxy_server_to_proxy_url_with_auth() {
-        let server = ProxyServer::new("proxy.example.com", 8080)
-            .with_auth(ProxyAuth::new("user", "pass"));
-        assert_eq!(server.to_proxy_url("http"), "http://user:pass@proxy.example.com:8080");
+        let server =
+            ProxyServer::new("proxy.example.com", 8080).with_auth(ProxyAuth::new("user", "pass"));
+        assert_eq!(
+            server.to_proxy_url("http"),
+            "http://user:pass@proxy.example.com:8080"
+        );
     }
 
     #[test]
     fn test_proxy_server_to_proxy_url_socks5() {
         let server = ProxyServer::new("socks.example.com", 1080);
-        assert_eq!(server.to_proxy_url("socks5"), "socks5://socks.example.com:1080");
+        assert_eq!(
+            server.to_proxy_url("socks5"),
+            "socks5://socks.example.com:1080"
+        );
     }
 
     #[test]

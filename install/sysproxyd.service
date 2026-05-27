@@ -6,7 +6,7 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.cargo/bin/sysproxyd
+ExecStart=%h/.cargo/bin/sysproxyd --no-timestamp
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal

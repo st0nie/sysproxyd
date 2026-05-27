@@ -41,7 +41,10 @@ fn test_proxy_auth_url_prefix() {
 fn test_proxy_server_url_without_auth() {
     let server = ProxyServer::new("proxy.example.com", 8080);
     assert_eq!(server.to_proxy_url("http"), "http://proxy.example.com:8080");
-    assert_eq!(server.to_proxy_url("https"), "https://proxy.example.com:8080");
+    assert_eq!(
+        server.to_proxy_url("https"),
+        "https://proxy.example.com:8080"
+    );
     assert_eq!(server.to_proxy_url("ftp"), "ftp://proxy.example.com:8080");
     assert_eq!(
         server.to_proxy_url("socks5"),
@@ -52,8 +55,8 @@ fn test_proxy_server_url_without_auth() {
 /// 测试 ProxyServer 的 URL 生成（有认证）
 #[test]
 fn test_proxy_server_url_with_auth() {
-    let server = ProxyServer::new("proxy.example.com", 8080)
-        .with_auth(ProxyAuth::new("admin", "secret123"));
+    let server =
+        ProxyServer::new("proxy.example.com", 8080).with_auth(ProxyAuth::new("admin", "secret123"));
     assert_eq!(
         server.to_proxy_url("http"),
         "http://admin:secret123@proxy.example.com:8080"
@@ -134,9 +137,8 @@ fn test_env_manager_apply_manual() {
     let mut config = ProxyConfig::new();
     config.mode = ProxyMode::Manual;
     config.http = Some(ProxyServer::new("http-proxy.local", 3128));
-    config.https = Some(
-        ProxyServer::new("https-proxy.local", 3129).with_auth(ProxyAuth::new("user", "pass")),
-    );
+    config.https =
+        Some(ProxyServer::new("https-proxy.local", 3129).with_auth(ProxyAuth::new("user", "pass")));
     config.no_proxy = vec!["localhost".to_string(), "127.0.0.1".to_string()];
 
     let manager = EnvManager::new();
@@ -228,7 +230,10 @@ fn test_env_manager_apply_socks() {
     manager.apply(&config);
 
     assert_eq!(env::var("all_proxy").unwrap(), "socks5://socks.local:1080");
-    assert_eq!(env::var("SOCKS_SERVER").unwrap(), "socks5://socks.local:1080");
+    assert_eq!(
+        env::var("SOCKS_SERVER").unwrap(),
+        "socks5://socks.local:1080"
+    );
 }
 
 /// 测试带认证的 SOCKS 代理
@@ -237,9 +242,8 @@ fn test_env_manager_apply_socks() {
 fn test_env_manager_apply_socks_with_auth() {
     let mut config = ProxyConfig::new();
     config.mode = ProxyMode::Manual;
-    config.socks = Some(
-        ProxyServer::new("socks.local", 1080).with_auth(ProxyAuth::new("user", "pass")),
-    );
+    config.socks =
+        Some(ProxyServer::new("socks.local", 1080).with_auth(ProxyAuth::new("user", "pass")));
 
     let manager = EnvManager::new();
     manager.apply(&config);
@@ -261,8 +265,5 @@ fn test_env_manager_apply_ftp() {
     let manager = EnvManager::new();
     manager.apply(&config);
 
-    assert_eq!(
-        env::var("ftp_proxy").unwrap(),
-        "ftp://ftp-proxy.local:2121"
-    );
+    assert_eq!(env::var("ftp_proxy").unwrap(), "ftp://ftp-proxy.local:2121");
 }
