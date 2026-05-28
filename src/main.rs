@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use clap::Parser;
 use glib::MainLoop;
@@ -29,7 +29,7 @@ fn main() {
     builder.init();
     info!("sysproxyd starting...");
 
-    let env_manager = Arc::new(EnvManager::new());
+    let env_manager = Rc::new(EnvManager::new());
 
     let initial_config = gsettings::read_config();
     if let Some(ref config) = initial_config {
