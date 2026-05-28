@@ -8,7 +8,6 @@ A lightweight system proxy daemon that automatically synchronizes desktop proxy 
 - **Multi-protocol support** — HTTP, HTTPS, FTP, and SOCKS proxies
 - **Authentication** — Supports proxy authentication with URL-safe encoding
 - **System-wide propagation** — Updates both process environment and systemd/D-Bus activation env
-- **Auto proxy** — Supports PAC (Proxy Auto-Config) URL mode
 
 ## Inspiration
 
@@ -25,7 +24,7 @@ DDE's `go-lib/proxy` module pioneered the approach of:
 ## Requirements
 
 - Rust toolchain (edition 2024)
-- GNOME desktop environment (for GSettings `org.gnome.system.proxy` schema; KDE and other desktops benefit from the propagated environment variables)
+- GSettings `org.gnome.system.proxy` schema (installed on GNOME; KDE and other desktops benefit from the propagated environment variables)
 - D-Bus session bus
 - `libgio` development headers (for `gio` crate build dependencies)
 

@@ -95,7 +95,7 @@ impl EnvManager {
         }
     }
 
-    /// 清除所有代理环境变量
+    /// Clear all proxy environment variables
     fn clear_all_envs(&self) {
         for key in [
             ENV_HTTP_PROXY,
@@ -108,7 +108,7 @@ impl EnvManager {
         }
     }
 
-    /// 清除 systemd 和 dbus 中的代理环境变量
+    /// Clear proxy environment variables from systemd and dbus
     fn clear_systemd_dbus_envs(&self) {
         for key in [
             ENV_HTTP_PROXY,
@@ -126,7 +126,7 @@ impl EnvManager {
         }
     }
 
-    /// 通过 systemd D-Bus 设置环境变量
+    /// Set environment variable via systemd D-Bus
     fn set_systemd_env(&self, key: &str, value: &str) -> zbus::Result<()> {
         let conn = Connection::session()?;
         let proxy = conn.call_method(
@@ -141,7 +141,7 @@ impl EnvManager {
         Ok(())
     }
 
-    /// 通过 systemd D-Bus 取消设置环境变量
+    /// Unset environment variable via systemd D-Bus
     fn unset_systemd_env(&self, key: &str) -> zbus::Result<()> {
         let conn = Connection::session()?;
         let proxy = conn.call_method(
@@ -156,7 +156,7 @@ impl EnvManager {
         Ok(())
     }
 
-    /// 通过 D-Bus daemon 设置激活环境变量
+    /// Set activation environment variable via D-Bus daemon
     fn set_dbus_env(&self, key: &str, value: &str) -> zbus::Result<()> {
         let conn = Connection::session()?;
         let mut env_map = HashMap::new();
