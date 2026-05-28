@@ -9,7 +9,7 @@ fn set_env(key: &str, value: &str) {
     unsafe { env::set_var(key, value) };
 }
 
-/// 测试 ProxyMode 的字符串解析和显示转换
+/// Test ProxyMode string parsing and display conversion
 #[test]
 fn test_proxy_mode_roundtrip() {
     assert_eq!(ProxyMode::from_str("manual"), Ok(ProxyMode::Manual));
@@ -23,7 +23,7 @@ fn test_proxy_mode_roundtrip() {
     assert_eq!(ProxyMode::Auto.to_string(), "auto");
 }
 
-/// 测试 ProxyAuth 的创建和 URL 前缀生成
+/// Test ProxyAuth creation and URL prefix generation
 #[test]
 fn test_proxy_auth_url_prefix() {
     let auth = ProxyAuth::new("user", "pass");
@@ -37,7 +37,7 @@ fn test_proxy_auth_url_prefix() {
     );
 }
 
-/// 测试 ProxyServer 的 URL 生成（无认证）
+/// Test ProxyServer URL generation (without auth)
 #[test]
 fn test_proxy_server_url_without_auth() {
     let server = ProxyServer::new("proxy.example.com", 8080);
@@ -53,7 +53,7 @@ fn test_proxy_server_url_without_auth() {
     );
 }
 
-/// 测试 ProxyServer 的 URL 生成（有认证）
+/// Test ProxyServer URL generation (with auth)
 #[test]
 fn test_proxy_server_url_with_auth() {
     let server =
@@ -64,7 +64,7 @@ fn test_proxy_server_url_with_auth() {
     );
 }
 
-/// 测试 ProxyConfig 的默认状态
+/// Test ProxyConfig default state
 #[test]
 fn test_proxy_config_default() {
     let config = ProxyConfig::new();
@@ -77,7 +77,7 @@ fn test_proxy_config_default() {
     assert!(config.no_proxy.is_empty());
 }
 
-/// 测试完整手动代理配置的场景
+/// Test full manual proxy configuration scenario
 #[test]
 fn test_full_manual_proxy_config() {
     let mut config = ProxyConfig::new();
@@ -94,7 +94,7 @@ fn test_full_manual_proxy_config() {
     assert_eq!(config.no_proxy.len(), 2);
 }
 
-/// 测试自动代理配置
+/// Test auto proxy configuration
 #[test]
 fn test_auto_proxy_config() {
     let mut config = ProxyConfig::new();
@@ -105,11 +105,11 @@ fn test_auto_proxy_config() {
     assert_eq!(config.auto_url.as_ref().unwrap(), "http://proxy.pac");
 }
 
-/// 测试 EnvManager 应用 None 模式时清除所有环境变量
+/// Test EnvManager clears all environment variables when applying None mode
 #[test]
 #[serial]
 fn test_env_manager_apply_none_clears_envs() {
-    // 预先设置一些代理环境变量
+    // Pre-set some proxy environment variables
     set_env("http_proxy", "http://old:8080");
     set_env("https_proxy", "http://old:8080");
     set_env("ftp_proxy", "http://old:8080");
@@ -127,7 +127,7 @@ fn test_env_manager_apply_none_clears_envs() {
     assert!(env::var("no_proxy").is_err());
 }
 
-/// 测试 EnvManager 应用手动代理配置
+/// Test EnvManager applies manual proxy configuration
 #[test]
 #[serial]
 fn test_env_manager_apply_manual() {
@@ -155,7 +155,7 @@ fn test_env_manager_apply_manual() {
     assert!(env::var("all_proxy").is_err());
 }
 
-/// 测试 EnvManager 应用自动代理配置
+/// Test EnvManager applies auto proxy configuration
 #[test]
 #[serial]
 fn test_env_manager_apply_auto() {
@@ -173,7 +173,7 @@ fn test_env_manager_apply_auto() {
     assert!(env::var("no_proxy").is_err());
 }
 
-/// 测试 EnvManager 从手动模式切换到 None 模式时正确清除
+/// Test EnvManager correctly clears when switching from manual to None mode
 #[test]
 #[serial]
 fn test_env_manager_switch_from_manual_to_none() {
@@ -190,7 +190,7 @@ fn test_env_manager_switch_from_manual_to_none() {
     assert!(env::var("http_proxy").is_err());
 }
 
-/// 测试 EnvManager 覆盖旧配置
+/// Test EnvManager overwrites old configuration
 #[test]
 #[serial]
 fn test_env_manager_overwrite_config() {
@@ -209,7 +209,7 @@ fn test_env_manager_overwrite_config() {
     assert_eq!(env::var("http_proxy").unwrap(), "http://new-proxy:9090");
 }
 
-/// 测试 GSettings 可用性检测（不依赖实际 GNOME 环境）
+/// Test GSettings availability detection (without relying on actual GNOME environment)
 #[test]
 fn test_gsettings_availability() {
     let _available = gsettings::is_available();
@@ -218,7 +218,7 @@ fn test_gsettings_availability() {
     }
 }
 
-/// 测试 SOCKS 代理配置
+/// Test SOCKS proxy configuration
 #[test]
 #[serial]
 fn test_env_manager_apply_socks() {
@@ -232,7 +232,7 @@ fn test_env_manager_apply_socks() {
     assert_eq!(env::var("all_proxy").unwrap(), "socks5://socks.local:1080");
 }
 
-/// 测试带认证的 SOCKS 代理
+/// Test SOCKS proxy with authentication
 #[test]
 #[serial]
 fn test_env_manager_apply_socks_with_auth() {
@@ -250,7 +250,7 @@ fn test_env_manager_apply_socks_with_auth() {
     );
 }
 
-/// 测试 FTP 代理配置
+/// Test FTP proxy configuration
 #[test]
 #[serial]
 fn test_env_manager_apply_ftp() {
