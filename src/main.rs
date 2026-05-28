@@ -9,8 +9,8 @@ use sysproxyd::gsettings;
 fn main() {
     let no_timestamp = std::env::args().any(|arg| arg == "--no-timestamp");
 
-    let mut builder = env_logger::Builder::from_default_env();
-    builder.filter_level(log::LevelFilter::Info);
+    let mut builder =
+        env_logger::Builder::from_env(env_logger::Env::default().filter_or("RUST_LOG", "info"));
 
     if no_timestamp {
         builder.format_timestamp(None);
