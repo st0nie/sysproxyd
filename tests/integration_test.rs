@@ -1,5 +1,6 @@
 use serial_test::serial;
 use std::env;
+use std::str::FromStr as _;
 use sysproxyd::config::{ProxyAuth, ProxyConfig, ProxyMode, ProxyServer};
 use sysproxyd::env_manager::EnvManager;
 use sysproxyd::gsettings;
@@ -11,11 +12,11 @@ fn set_env(key: &str, value: &str) {
 /// 测试 ProxyMode 的字符串解析和显示转换
 #[test]
 fn test_proxy_mode_roundtrip() {
-    assert_eq!(ProxyMode::from_str("manual"), ProxyMode::Manual);
-    assert_eq!(ProxyMode::from_str("auto"), ProxyMode::Auto);
-    assert_eq!(ProxyMode::from_str("none"), ProxyMode::None);
-    assert_eq!(ProxyMode::from_str(""), ProxyMode::None);
-    assert_eq!(ProxyMode::from_str("unknown"), ProxyMode::None);
+    assert_eq!(ProxyMode::from_str("manual"), Ok(ProxyMode::Manual));
+    assert_eq!(ProxyMode::from_str("auto"), Ok(ProxyMode::Auto));
+    assert_eq!(ProxyMode::from_str("none"), Ok(ProxyMode::None));
+    assert_eq!(ProxyMode::from_str(""), Ok(ProxyMode::None));
+    assert_eq!(ProxyMode::from_str("unknown"), Ok(ProxyMode::None));
 
     assert_eq!(ProxyMode::None.to_string(), "none");
     assert_eq!(ProxyMode::Manual.to_string(), "manual");
@@ -114,8 +115,6 @@ fn test_env_manager_apply_none_clears_envs() {
     set_env("ftp_proxy", "http://old:8080");
     set_env("all_proxy", "socks5://old:1080");
     set_env("no_proxy", "old.local");
-    set_env("auto_proxy", "http://old.pac");
-    set_env("SOCKS_SERVER", "socks5://old:1080");
 
     let manager = EnvManager::new();
     let config = ProxyConfig::new();
@@ -126,8 +125,6 @@ fn test_env_manager_apply_none_clears_envs() {
     assert!(env::var("ftp_proxy").is_err());
     assert!(env::var("all_proxy").is_err());
     assert!(env::var("no_proxy").is_err());
-    assert!(env::var("auto_proxy").is_err());
-    assert!(env::var("SOCKS_SERVER").is_err());
 }
 
 /// 测试 EnvManager 应用手动代理配置
@@ -169,8 +166,11 @@ fn test_env_manager_apply_auto() {
     let manager = EnvManager::new();
     manager.apply(&config);
 
-    assert_eq!(env::var("auto_proxy").unwrap(), "http://proxy.pac");
     assert!(env::var("http_proxy").is_err());
+    assert!(env::var("https_proxy").is_err());
+    assert!(env::var("ftp_proxy").is_err());
+    assert!(env::var("all_proxy").is_err());
+    assert!(env::var("no_proxy").is_err());
 }
 
 /// 测试 EnvManager 从手动模式切换到 None 模式时正确清除
@@ -230,10 +230,6 @@ fn test_env_manager_apply_socks() {
     manager.apply(&config);
 
     assert_eq!(env::var("all_proxy").unwrap(), "socks5://socks.local:1080");
-    assert_eq!(
-        env::var("SOCKS_SERVER").unwrap(),
-        "socks5://socks.local:1080"
-    );
 }
 
 /// 测试带认证的 SOCKS 代理
@@ -265,5 +261,8 @@ fn test_env_manager_apply_ftp() {
     let manager = EnvManager::new();
     manager.apply(&config);
 
-    assert_eq!(env::var("ftp_proxy").unwrap(), "ftp://ftp-proxy.local:2121");
+    assert_eq!(
+        env::var("ftp_proxy").unwrap(),
+        "http://ftp-proxy.local:2121"
+    );
 }

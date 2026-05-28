@@ -11,8 +11,12 @@ const ENV_HTTPS_PROXY: &str = "https_proxy";
 const ENV_FTP_PROXY: &str = "ftp_proxy";
 const ENV_ALL_PROXY: &str = "all_proxy";
 const ENV_NO_PROXY: &str = "no_proxy";
-const ENV_AUTO_PROXY: &str = "auto_proxy";
-const ENV_SOCKS_SERVER: &str = "SOCKS_SERVER";
+
+impl Default for EnvManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl EnvManager {
     pub fn new() -> Self {
@@ -34,13 +38,9 @@ impl EnvManager {
                 self.apply_manual(config);
             }
             ProxyMode::Auto => {
-                info!("Proxy mode is 'auto', applying auto proxy settings");
-                if let Some(ref url) = config.auto_url {
-                    info!("Auto proxy URL: {}", url);
-                    self.set_env(ENV_AUTO_PROXY, url);
-                } else {
-                    info!("No auto proxy URL configured");
-                }
+                info!(
+                    "Proxy mode is 'auto', proxy configuration read but no standard env vars are set"
+                );
             }
         }
     }
@@ -61,7 +61,7 @@ impl EnvManager {
             info!("No HTTPS proxy configured");
         }
         if let Some(ref s) = config.ftp {
-            let url = s.to_proxy_url("ftp");
+            let url = s.to_proxy_url("http");
             info!("Setting FTP proxy: {}", url);
             self.set_env(ENV_FTP_PROXY, &url);
         } else {
@@ -71,7 +71,6 @@ impl EnvManager {
             let url = s.to_proxy_url("socks5");
             info!("Setting SOCKS proxy: {}", url);
             self.set_env(ENV_ALL_PROXY, &url);
-            self.set_env(ENV_SOCKS_SERVER, &url);
         } else {
             info!("No SOCKS proxy configured");
         }
@@ -104,8 +103,6 @@ impl EnvManager {
             ENV_FTP_PROXY,
             ENV_ALL_PROXY,
             ENV_NO_PROXY,
-            ENV_AUTO_PROXY,
-            ENV_SOCKS_SERVER,
         ] {
             unsafe { env::remove_var(key) };
         }
@@ -119,8 +116,6 @@ impl EnvManager {
             ENV_FTP_PROXY,
             ENV_ALL_PROXY,
             ENV_NO_PROXY,
-            ENV_AUTO_PROXY,
-            ENV_SOCKS_SERVER,
         ] {
             if let Err(e) = self.unset_systemd_env(key) {
                 warn!("Failed to unset systemd env {}: {}", key, e);

@@ -1,5 +1,5 @@
 use percent_encoding::utf8_percent_encode;
-use std::fmt;
+use std::{convert::Infallible, fmt, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProxyMode {
@@ -8,12 +8,14 @@ pub enum ProxyMode {
     Auto,
 }
 
-impl ProxyMode {
-    pub fn from_str(s: &str) -> Self {
+impl FromStr for ProxyMode {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "manual" => ProxyMode::Manual,
-            "auto" => ProxyMode::Auto,
-            _ => ProxyMode::None,
+            "manual" => Ok(ProxyMode::Manual),
+            "auto" => Ok(ProxyMode::Auto),
+            _ => Ok(ProxyMode::None),
         }
     }
 }
@@ -99,6 +101,12 @@ pub struct ProxyConfig {
     pub no_proxy: Vec<String>,
 }
 
+impl Default for ProxyConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProxyConfig {
     pub fn new() -> Self {
         Self {
@@ -129,11 +137,11 @@ mod tests {
 
     #[test]
     fn test_proxy_mode_from_str() {
-        assert_eq!(ProxyMode::from_str("manual"), ProxyMode::Manual);
-        assert_eq!(ProxyMode::from_str("auto"), ProxyMode::Auto);
-        assert_eq!(ProxyMode::from_str("none"), ProxyMode::None);
-        assert_eq!(ProxyMode::from_str(""), ProxyMode::None);
-        assert_eq!(ProxyMode::from_str("unknown"), ProxyMode::None);
+        assert_eq!(ProxyMode::from_str("manual"), Ok(ProxyMode::Manual));
+        assert_eq!(ProxyMode::from_str("auto"), Ok(ProxyMode::Auto));
+        assert_eq!(ProxyMode::from_str("none"), Ok(ProxyMode::None));
+        assert_eq!(ProxyMode::from_str(""), Ok(ProxyMode::None));
+        assert_eq!(ProxyMode::from_str("unknown"), Ok(ProxyMode::None));
     }
 
     #[test]

@@ -36,7 +36,7 @@ pub fn read_config() -> Option<ProxyConfig> {
     let mut config = ProxyConfig::new();
 
     let mode = settings.string(KEY_MODE);
-    config.mode = ProxyMode::from_str(&mode);
+    config.mode = mode.as_str().parse().unwrap();
     info!("Read proxy mode from GSettings: {}", config.mode);
 
     match config.mode {
