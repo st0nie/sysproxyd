@@ -14,6 +14,10 @@ struct Cli {
     /// Disable timestamps in log output (useful for journald/syslog)
     #[arg(long)]
     no_timestamp: bool,
+
+    /// Use socks5h scheme for all_proxy instead of socks5
+    #[arg(long)]
+    use_socks5h: bool,
 }
 
 fn main() {
@@ -29,7 +33,7 @@ fn main() {
     builder.init();
     info!("sysproxyd starting...");
 
-    let env_manager = Rc::new(EnvManager::new());
+    let env_manager = Rc::new(EnvManager::new(cli.use_socks5h));
 
     let initial_config = gsettings::read_config();
     if let Some(ref config) = initial_config {

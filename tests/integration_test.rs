@@ -116,7 +116,7 @@ fn test_env_manager_apply_none_clears_envs() {
     set_env("all_proxy", "socks5://old:1080");
     set_env("no_proxy", "old.local");
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     let config = ProxyConfig::new();
     manager.apply(&config);
 
@@ -138,7 +138,7 @@ fn test_env_manager_apply_manual() {
         Some(ProxyServer::new("https-proxy.local", 3129).with_auth(ProxyAuth::new("user", "pass")));
     config.no_proxy = vec!["localhost".to_string(), "127.0.0.1".to_string()];
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config);
 
     assert_eq!(
@@ -163,7 +163,7 @@ fn test_env_manager_apply_auto() {
     config.mode = ProxyMode::Auto;
     config.auto_url = Some("http://proxy.pac".to_string());
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config);
 
     assert!(env::var("http_proxy").is_err());
@@ -181,7 +181,7 @@ fn test_env_manager_switch_from_manual_to_none() {
     config.mode = ProxyMode::Manual;
     config.http = Some(ProxyServer::new("proxy.local", 8080));
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config);
     assert_eq!(env::var("http_proxy").unwrap(), "http://proxy.local:8080");
 
@@ -198,7 +198,7 @@ fn test_env_manager_overwrite_config() {
     config1.mode = ProxyMode::Manual;
     config1.http = Some(ProxyServer::new("old-proxy", 8080));
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config1);
     assert_eq!(env::var("http_proxy").unwrap(), "http://old-proxy:8080");
 
@@ -226,7 +226,7 @@ fn test_env_manager_apply_socks() {
     config.mode = ProxyMode::Manual;
     config.socks = Some(ProxyServer::new("socks.local", 1080));
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config);
 
     assert_eq!(env::var("all_proxy").unwrap(), "socks5://socks.local:1080");
@@ -241,13 +241,27 @@ fn test_env_manager_apply_socks_with_auth() {
     config.socks =
         Some(ProxyServer::new("socks.local", 1080).with_auth(ProxyAuth::new("user", "pass")));
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config);
 
     assert_eq!(
         env::var("all_proxy").unwrap(),
         "socks5://user:pass@socks.local:1080"
     );
+}
+
+/// Test SOCKS proxy with socks5h scheme
+#[test]
+#[serial]
+fn test_env_manager_apply_socks5h() {
+    let mut config = ProxyConfig::new();
+    config.mode = ProxyMode::Manual;
+    config.socks = Some(ProxyServer::new("socks.local", 1080));
+
+    let manager = EnvManager::new(true);
+    manager.apply(&config);
+
+    assert_eq!(env::var("all_proxy").unwrap(), "socks5h://socks.local:1080");
 }
 
 /// Test FTP proxy configuration
@@ -258,7 +272,7 @@ fn test_env_manager_apply_ftp() {
     config.mode = ProxyMode::Manual;
     config.ftp = Some(ProxyServer::new("ftp-proxy.local", 2121));
 
-    let manager = EnvManager::new();
+    let manager = EnvManager::new(false);
     manager.apply(&config);
 
     assert_eq!(

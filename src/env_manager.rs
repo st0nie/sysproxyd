@@ -4,7 +4,9 @@ use std::collections::HashMap;
 use std::env;
 use zbus::blocking::Connection;
 
-pub struct EnvManager;
+pub struct EnvManager {
+    use_socks5h: bool,
+}
 
 const ENV_HTTP_PROXY: &str = "http_proxy";
 const ENV_HTTPS_PROXY: &str = "https_proxy";
@@ -14,13 +16,13 @@ const ENV_NO_PROXY: &str = "no_proxy";
 
 impl Default for EnvManager {
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }
 
 impl EnvManager {
-    pub fn new() -> Self {
-        Self
+    pub fn new(use_socks5h: bool) -> Self {
+        Self { use_socks5h }
     }
 
     pub fn apply(&self, config: &ProxyConfig) {
@@ -68,7 +70,12 @@ impl EnvManager {
             info!("No FTP proxy configured");
         }
         if let Some(ref s) = config.socks {
-            let url = s.to_proxy_url("socks5");
+            let scheme = if self.use_socks5h {
+                "socks5h"
+            } else {
+                "socks5"
+            };
+            let url = s.to_proxy_url(scheme);
             info!("Setting SOCKS proxy: {}", url);
             self.set_env(ENV_ALL_PROXY, &url);
         } else {
