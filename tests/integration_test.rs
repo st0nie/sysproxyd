@@ -9,21 +9,21 @@ fn set_env(key: &str, value: &str) {
     unsafe { env::set_var(key, value) };
 }
 
-/// Test ProxyMode string parsing and display conversion
+/// Test `ProxyMode` string parsing and display conversion
 #[test]
 fn test_proxy_mode_roundtrip() {
     assert_eq!(ProxyMode::from_str("manual"), Ok(ProxyMode::Manual));
     assert_eq!(ProxyMode::from_str("auto"), Ok(ProxyMode::Auto));
     assert_eq!(ProxyMode::from_str("none"), Ok(ProxyMode::None));
-    assert_eq!(ProxyMode::from_str(""), Ok(ProxyMode::None));
-    assert_eq!(ProxyMode::from_str("unknown"), Ok(ProxyMode::None));
+    assert!(ProxyMode::from_str("").is_err());
+    assert!(ProxyMode::from_str("unknown").is_err());
 
     assert_eq!(ProxyMode::None.to_string(), "none");
     assert_eq!(ProxyMode::Manual.to_string(), "manual");
     assert_eq!(ProxyMode::Auto.to_string(), "auto");
 }
 
-/// Test ProxyAuth creation and URL prefix generation
+/// Test `ProxyAuth` creation and URL prefix generation
 #[test]
 fn test_proxy_auth_url_prefix() {
     let auth = ProxyAuth::new("user", "pass");
@@ -37,7 +37,7 @@ fn test_proxy_auth_url_prefix() {
     );
 }
 
-/// Test ProxyServer URL generation (without auth)
+/// Test `ProxyServer` URL generation (without auth)
 #[test]
 fn test_proxy_server_url_without_auth() {
     let server = ProxyServer::new("proxy.example.com", 8080);
@@ -53,7 +53,7 @@ fn test_proxy_server_url_without_auth() {
     );
 }
 
-/// Test ProxyServer URL generation (with auth)
+/// Test `ProxyServer` URL generation (with auth)
 #[test]
 fn test_proxy_server_url_with_auth() {
     let server =
@@ -64,7 +64,7 @@ fn test_proxy_server_url_with_auth() {
     );
 }
 
-/// Test ProxyConfig default state
+/// Test `ProxyConfig` default state
 #[test]
 fn test_proxy_config_default() {
     let config = ProxyConfig::new();
@@ -105,7 +105,7 @@ fn test_auto_proxy_config() {
     assert_eq!(config.auto_url.as_ref().unwrap(), "http://proxy.pac");
 }
 
-/// Test EnvManager clears all environment variables when applying None mode
+/// Test `EnvManager` clears all environment variables when applying None mode
 #[test]
 #[serial]
 fn test_env_manager_apply_none_clears_envs() {
@@ -127,7 +127,7 @@ fn test_env_manager_apply_none_clears_envs() {
     assert!(env::var("no_proxy").is_err());
 }
 
-/// Test EnvManager applies manual proxy configuration
+/// Test `EnvManager` applies manual proxy configuration
 #[test]
 #[serial]
 fn test_env_manager_apply_manual() {
@@ -155,7 +155,7 @@ fn test_env_manager_apply_manual() {
     assert!(env::var("all_proxy").is_err());
 }
 
-/// Test EnvManager applies auto proxy configuration
+/// Test `EnvManager` applies auto proxy configuration
 #[test]
 #[serial]
 fn test_env_manager_apply_auto() {
@@ -173,7 +173,7 @@ fn test_env_manager_apply_auto() {
     assert!(env::var("no_proxy").is_err());
 }
 
-/// Test EnvManager correctly clears when switching from manual to None mode
+/// Test `EnvManager` correctly clears when switching from manual to None mode
 #[test]
 #[serial]
 fn test_env_manager_switch_from_manual_to_none() {
@@ -190,7 +190,7 @@ fn test_env_manager_switch_from_manual_to_none() {
     assert!(env::var("http_proxy").is_err());
 }
 
-/// Test EnvManager overwrites old configuration
+/// Test `EnvManager` overwrites old configuration
 #[test]
 #[serial]
 fn test_env_manager_overwrite_config() {
@@ -209,11 +209,11 @@ fn test_env_manager_overwrite_config() {
     assert_eq!(env::var("http_proxy").unwrap(), "http://new-proxy:9090");
 }
 
-/// Test GSettings availability detection (without relying on actual GNOME environment)
+/// Test `GSettings` availability detection (without relying on actual GNOME environment)
 #[test]
 fn test_gsettings_availability() {
-    let _available = gsettings::is_available();
-    if !_available {
+    let available = gsettings::is_available();
+    if !available {
         assert!(gsettings::read_config().is_none());
     }
 }

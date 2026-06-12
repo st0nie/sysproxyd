@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cargo install --path . --force
+cargo install --path . --locked --force
 
 SERVICE_NAME="sysproxyd"
 SERVICE_FILE="install/sysproxyd.service"

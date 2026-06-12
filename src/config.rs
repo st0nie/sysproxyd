@@ -1,21 +1,39 @@
 use percent_encoding::utf8_percent_encode;
-use std::{convert::Infallible, fmt, str::FromStr};
+use std::{fmt, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ProxyMode {
+    #[default]
     None,
     Manual,
     Auto,
 }
 
+/// Error returned when a proxy mode string cannot be parsed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParseProxyModeError {
+    Unknown(String),
+}
+
+impl fmt::Display for ParseProxyModeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unknown(s) => write!(f, "unknown proxy mode: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for ParseProxyModeError {}
+
 impl FromStr for ProxyMode {
-    type Err = Infallible;
+    type Err = ParseProxyModeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "manual" => Ok(ProxyMode::Manual),
             "auto" => Ok(ProxyMode::Auto),
-            _ => Ok(ProxyMode::None),
+            "none" => Ok(ProxyMode::None),
+            _ => Err(ParseProxyModeError::Unknown(s.to_string())),
         }
     }
 }
@@ -44,6 +62,7 @@ impl ProxyAuth {
         }
     }
 
+    #[must_use]
     pub fn as_url_prefix(&self) -> String {
         format!(
             "{}:{}@",
@@ -75,22 +94,24 @@ impl ProxyServer {
         }
     }
 
+    #[must_use]
     pub fn with_auth(mut self, auth: ProxyAuth) -> Self {
         self.auth = Some(auth);
         self
     }
 
+    #[must_use]
     pub fn to_proxy_url(&self, scheme: &str) -> String {
         let auth = self
             .auth
             .as_ref()
-            .map(|a| a.as_url_prefix())
+            .map(ProxyAuth::as_url_prefix)
             .unwrap_or_default();
         format!("{}://{}{}:{}", scheme, auth, self.host, self.port)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ProxyConfig {
     pub mode: ProxyMode,
     pub http: Option<ProxyServer>,
@@ -101,23 +122,10 @@ pub struct ProxyConfig {
     pub no_proxy: Vec<String>,
 }
 
-impl Default for ProxyConfig {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ProxyConfig {
+    #[must_use]
     pub fn new() -> Self {
-        Self {
-            mode: ProxyMode::None,
-            http: None,
-            https: None,
-            ftp: None,
-            socks: None,
-            auto_url: None,
-            no_proxy: Vec::new(),
-        }
+        Self::default()
     }
 }
 
@@ -140,8 +148,8 @@ mod tests {
         assert_eq!(ProxyMode::from_str("manual"), Ok(ProxyMode::Manual));
         assert_eq!(ProxyMode::from_str("auto"), Ok(ProxyMode::Auto));
         assert_eq!(ProxyMode::from_str("none"), Ok(ProxyMode::None));
-        assert_eq!(ProxyMode::from_str(""), Ok(ProxyMode::None));
-        assert_eq!(ProxyMode::from_str("unknown"), Ok(ProxyMode::None));
+        assert!(ProxyMode::from_str("").is_err());
+        assert!(ProxyMode::from_str("unknown").is_err());
     }
 
     #[test]

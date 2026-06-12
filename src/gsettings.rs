@@ -20,15 +20,17 @@ const KEY_USE_AUTH: &str = "use-authentication";
 const KEY_AUTH_USER: &str = "authentication-user";
 const KEY_AUTH_PASS: &str = "authentication-password";
 
+#[must_use]
 pub fn is_available() -> bool {
     gio::SettingsSchemaSource::default()
         .and_then(|source| source.lookup(SCHEMA, true))
         .is_some()
 }
 
+#[must_use]
 pub fn read_config() -> Option<ProxyConfig> {
     if !is_available() {
-        warn!("GSettings schema '{}' not found", SCHEMA);
+        warn!("GSettings schema '{SCHEMA}' not found");
         return None;
     }
 
@@ -36,7 +38,10 @@ pub fn read_config() -> Option<ProxyConfig> {
     let mut config = ProxyConfig::new();
 
     let mode = settings.string(KEY_MODE);
-    config.mode = mode.as_str().parse().unwrap();
+    config.mode = mode.parse().unwrap_or_else(|_| {
+        warn!("Unknown proxy mode '{mode}', defaulting to none");
+        ProxyMode::None
+    });
     info!("Read proxy mode from GSettings: {}", config.mode);
 
     match config.mode {
@@ -112,23 +117,23 @@ where
 }
 
 fn read_server(child: &Settings) -> Option<ProxyServer> {
-    let host = child.string(KEY_HOST).to_string();
+    let host = child.string(KEY_HOST);
     if host.is_empty() {
         return None;
     }
 
-    let port = child.int(KEY_PORT) as u16;
-    Some(ProxyServer::new(host, port))
+    let port = u16::try_from(child.int(KEY_PORT)).ok()?;
+    Some(ProxyServer::new(host.to_string(), port))
 }
 
 fn read_http_server(child: &Settings) -> Option<ProxyServer> {
     let mut server = read_server(child)?;
 
     if child.boolean(KEY_USE_AUTH) {
-        let user = child.string(KEY_AUTH_USER).to_string();
-        let pass = child.string(KEY_AUTH_PASS).to_string();
+        let user = child.string(KEY_AUTH_USER);
+        let pass = child.string(KEY_AUTH_PASS);
         if !user.is_empty() {
-            server = server.with_auth(ProxyAuth::new(user, pass));
+            server = server.with_auth(ProxyAuth::new(user.to_string(), pass.to_string()));
         }
     }
 
@@ -139,6 +144,6 @@ fn read_no_proxy(settings: &Settings) -> Vec<String> {
     settings
         .strv(KEY_IGNORE_HOSTS)
         .iter()
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .collect()
 }
