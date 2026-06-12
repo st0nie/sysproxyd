@@ -1,9 +1,10 @@
+use anyhow::{Context, Result};
 use clap::Parser;
 use glib::MainLoop;
-use log::info;
+use log::{info, warn};
 
 use sysproxyd::env_manager::EnvManager;
-use sysproxyd::gsettings;
+use sysproxyd::gsettings::{self, GSettingsError};
 
 /// System proxy daemon — syncs GNOME/GSettings proxy config to shell env vars and systemd.
 #[derive(Parser)]
@@ -16,9 +17,13 @@ struct Cli {
     /// Use socks5h scheme for `all_proxy` instead of socks5
     #[arg(long)]
     use_socks5h: bool,
+
+    /// Apply the current configuration once and exit
+    #[arg(long)]
+    once: bool,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let mut builder =
@@ -33,19 +38,34 @@ fn main() {
 
     let env_manager = EnvManager::new(cli.use_socks5h);
 
-    let initial_config = gsettings::read_config();
-    if let Some(ref config) = initial_config {
-        env_manager.apply(config);
+    apply_current_config(&env_manager).context("failed to apply initial proxy config")?;
+
+    if cli.once {
+        info!("sysproxyd applied config once, exiting");
+        return Ok(());
     }
 
     let env_manager_clone = env_manager.clone();
     let _watcher = gsettings::watch(move || {
         info!("GSettings proxy config changed, reapplying...");
-        if let Some(config) = gsettings::read_config() {
-            env_manager_clone.apply(&config);
+        if let Err(e) = apply_current_config(&env_manager_clone) {
+            warn!("{e}");
         }
     });
 
     let main_loop = MainLoop::new(None, false);
     main_loop.run();
+    Ok(())
+}
+
+fn apply_current_config(env_manager: &EnvManager) -> Result<()> {
+    match gsettings::read_config() {
+        Ok(config) => env_manager
+            .try_apply(&config)
+            .context("failed to propagate proxy envs"),
+        Err(GSettingsError::SchemaNotAvailable) => {
+            warn!("GSettings proxy schema not available; no config applied");
+            Ok(())
+        }
+    }
 }

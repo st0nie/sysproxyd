@@ -3,6 +3,7 @@ use gio::Settings;
 use gio::prelude::*;
 use glib::SignalHandlerId;
 use log::{info, warn};
+use thiserror::Error;
 
 const SCHEMA: &str = "org.gnome.system.proxy";
 const KEY_MODE: &str = "mode";
@@ -20,6 +21,12 @@ const KEY_USE_AUTH: &str = "use-authentication";
 const KEY_AUTH_USER: &str = "authentication-user";
 const KEY_AUTH_PASS: &str = "authentication-password";
 
+#[derive(Debug, Error)]
+pub enum GSettingsError {
+    #[error("proxy schema '{SCHEMA}' is not available")]
+    SchemaNotAvailable,
+}
+
 #[must_use]
 pub fn is_available() -> bool {
     gio::SettingsSchemaSource::default()
@@ -27,19 +34,23 @@ pub fn is_available() -> bool {
         .is_some()
 }
 
-#[must_use]
-pub fn read_config() -> Option<ProxyConfig> {
+/// Read the current proxy configuration from `GSettings`.
+///
+/// # Errors
+///
+/// Returns `GSettingsError::SchemaNotAvailable` if the `org.gnome.system.proxy`
+/// schema is not installed.
+pub fn read_config() -> Result<ProxyConfig, GSettingsError> {
     if !is_available() {
-        warn!("GSettings schema '{SCHEMA}' not found");
-        return None;
+        return Err(GSettingsError::SchemaNotAvailable);
     }
 
     let settings = Settings::new(SCHEMA);
     let mut config = ProxyConfig::new();
 
     let mode = settings.string(KEY_MODE);
-    config.mode = mode.parse().unwrap_or_else(|_| {
-        warn!("Unknown proxy mode '{mode}', defaulting to none");
+    config.mode = mode.parse().unwrap_or_else(|e| {
+        warn!("{e} ('{mode}'), defaulting to none");
         ProxyMode::None
     });
     info!("Read proxy mode from GSettings: {}", config.mode);
@@ -52,9 +63,9 @@ pub fn read_config() -> Option<ProxyConfig> {
             let socks = settings.child(CHILD_SOCKS);
 
             config.http = read_http_server(&http);
-            config.https = read_server(&https);
-            config.ftp = read_server(&ftp);
-            config.socks = read_server(&socks);
+            config.https = read_server(CHILD_HTTPS, &https);
+            config.ftp = read_server(CHILD_FTP, &ftp);
+            config.socks = read_server(CHILD_SOCKS, &socks);
             config.no_proxy = read_no_proxy(&settings);
         }
         ProxyMode::Auto => {
@@ -63,7 +74,7 @@ pub fn read_config() -> Option<ProxyConfig> {
         ProxyMode::None => {}
     }
 
-    Some(config)
+    Ok(config)
 }
 
 pub struct Watcher {
@@ -116,18 +127,24 @@ where
     })
 }
 
-fn read_server(child: &Settings) -> Option<ProxyServer> {
+fn read_server(protocol: &'static str, child: &Settings) -> Option<ProxyServer> {
     let host = child.string(KEY_HOST);
     if host.is_empty() {
         return None;
     }
 
-    let port = u16::try_from(child.int(KEY_PORT)).ok()?;
+    let port = match u16::try_from(child.int(KEY_PORT)) {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("Invalid port for {protocol} proxy: {e}, ignoring server");
+            return None;
+        }
+    };
     Some(ProxyServer::new(host.to_string(), port))
 }
 
 fn read_http_server(child: &Settings) -> Option<ProxyServer> {
-    let mut server = read_server(child)?;
+    let mut server = read_server(CHILD_HTTP, child)?;
 
     if child.boolean(KEY_USE_AUTH) {
         let user = child.string(KEY_AUTH_USER);

@@ -1,5 +1,7 @@
 use percent_encoding::utf8_percent_encode;
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ProxyMode {
@@ -10,20 +12,11 @@ pub enum ProxyMode {
 }
 
 /// Error returned when a proxy mode string cannot be parsed.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ParseProxyModeError {
+    #[error("unknown proxy mode: {0}")]
     Unknown(String),
 }
-
-impl fmt::Display for ParseProxyModeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Unknown(s) => write!(f, "unknown proxy mode: {s}"),
-        }
-    }
-}
-
-impl std::error::Error for ParseProxyModeError {}
 
 impl FromStr for ProxyMode {
     type Err = ParseProxyModeError;

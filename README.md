@@ -56,6 +56,14 @@ cargo build --release
 
 The binary will be available at `target/release/sysproxyd`.
 
+### One-shot mode
+
+Apply the current GSettings proxy configuration once and exit — useful in startup scripts or when you only need to refresh the environment:
+
+```bash
+sysproxyd --once
+```
+
 ## Testing
 
 ```bash
@@ -68,9 +76,9 @@ cargo test
 
 | File | Purpose |
 |------|---------|
-| `src/main.rs` | Daemon entrypoint — glib MainLoop, wires watcher to env manager |
+| `src/main.rs` | Daemon entrypoint — glib MainLoop, wires watcher to env manager; supports `--once` |
 | `src/gsettings.rs` | Reads `org.gnome.system.proxy` via `gio::Settings`; watches for changes |
-| `src/env_manager.rs` | Applies `ProxyConfig` to env vars + systemd/dbus activation env |
+| `src/env_manager.rs` | Applies `ProxyConfig` to env vars + systemd/dbus activation env; caches D-Bus connection |
 | `src/config.rs` | Data structures: `ProxyMode`, `ProxyServer`, `ProxyAuth`, `ProxyConfig` |
 
 ## Roadmap / TODO

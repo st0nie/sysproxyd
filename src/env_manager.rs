@@ -2,11 +2,20 @@ use crate::config::{ProxyConfig, ProxyMode};
 use log::{debug, info, warn};
 use std::collections::HashMap;
 use std::env;
+use std::sync::{Arc, Mutex};
+use thiserror::Error;
 use zbus::blocking::Connection;
+
+#[derive(Debug, Error)]
+pub enum EnvError {
+    #[error("D-Bus operation failed: {0}")]
+    Zbus(#[from] zbus::Error),
+}
 
 #[derive(Debug, Clone)]
 pub struct EnvManager {
     use_socks5h: bool,
+    conn: Arc<Mutex<Option<Connection>>>,
 }
 
 const ENV_HTTP_PROXY: &str = "http_proxy";
@@ -32,10 +41,27 @@ impl Default for EnvManager {
 impl EnvManager {
     #[must_use]
     pub fn new(use_socks5h: bool) -> Self {
-        Self { use_socks5h }
+        Self {
+            use_socks5h,
+            conn: Arc::new(Mutex::new(None)),
+        }
     }
 
+    /// Apply the proxy configuration to the process environment and propagate it
+    /// to systemd/D-Bus. D-Bus failures are logged but not returned.
     pub fn apply(&self, config: &ProxyConfig) {
+        if let Err(e) = self.try_apply(config) {
+            warn!("Failed to apply proxy config: {e}");
+        }
+    }
+
+    /// Apply the proxy configuration and return any D-Bus propagation error.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EnvError::Zbus` if the D-Bus connection or any systemd/D-Bus
+    /// method call fails.
+    pub fn try_apply(&self, config: &ProxyConfig) -> Result<(), EnvError> {
         info!("Applying proxy config: mode={}", config.mode);
 
         Self::clear_all_envs();
@@ -62,9 +88,7 @@ impl EnvManager {
             debug!("Set env: {key}={value}");
         }
 
-        if let Err(e) = Self::propagate_all(&envs) {
-            warn!("Failed to propagate proxy envs to systemd/dbus: {e}");
-        }
+        self.propagate_all(&envs)
     }
 
     fn build_manual_envs(&self, config: &ProxyConfig) -> Vec<(&'static str, String)> {
@@ -124,10 +148,26 @@ impl EnvManager {
         }
     }
 
-    /// Propagate the desired proxy environment to systemd and D-Bus in batched calls.
-    fn propagate_all(envs: &[(&'static str, String)]) -> zbus::Result<()> {
-        let conn = Connection::session()?;
+    fn propagate_all(&self, envs: &[(&'static str, String)]) -> Result<(), EnvError> {
+        let mut conn_guard = self.conn.lock().expect("EnvManager mutex poisoned");
 
+        if let Some(ref conn) = *conn_guard {
+            match Self::do_propagate(conn, envs) {
+                Ok(()) => return Ok(()),
+                Err(e) => {
+                    warn!("Cached D-Bus connection failed, reconnecting: {e}");
+                    *conn_guard = None;
+                }
+            }
+        }
+
+        let conn = Connection::session()?;
+        Self::do_propagate(&conn, envs)?;
+        *conn_guard = Some(conn);
+        Ok(())
+    }
+
+    fn do_propagate(conn: &Connection, envs: &[(&'static str, String)]) -> Result<(), EnvError> {
         let env_map: HashMap<&str, &str> = envs
             .iter()
             .map(|(key, value)| (*key, value.as_str()))

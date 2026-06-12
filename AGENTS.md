@@ -11,12 +11,13 @@ cargo build          # debug
 cargo build --release
 cargo test           # runs unit + integration tests
 cargo run            # runs the daemon (needs GNOME session for full function)
+cargo run -- --once  # apply current config once and exit
 ```
 
 ## Critical Testing Notes
 
 - **Integration tests mutate process environment variables.** Every `EnvManager` test must be annotated with `#[serial]` from `serial_test`. Without it, tests race and flake.
-- `gsettings::is_available()` returns `false` outside a GNOME session. Tests that call `read_config()` or `watch()` outside GNOME get `None` — this is expected, not a failure.
+- `gsettings::is_available()` returns `false` outside a GNOME session. Tests that call `read_config()` outside GNOME get `Err(GSettingsError::SchemaNotAvailable)`; tests that call `watch()` outside GNOME get `None` — both are expected, not failures.
 
 ## Runtime Requirements
 
@@ -27,9 +28,9 @@ cargo run            # runs the daemon (needs GNOME session for full function)
 ## Architecture
 
 ```
-src/main.rs        glib MainLoop, wires gsettings watcher → env_manager
-src/gsettings.rs   Reads org.gnome.system.proxy via gio::Settings; watches changes
-src/env_manager.rs Applies ProxyConfig to env vars + systemd/dbus activation env
+src/main.rs        glib MainLoop, wires gsettings watcher → env_manager; returns anyhow::Result
+src/gsettings.rs   Reads org.gnome.system.proxy via gio::Settings; watches changes; returns Result<ProxyConfig, GSettingsError>
+src/env_manager.rs Applies ProxyConfig to env vars + systemd/dbus activation env; caches D-Bus connection; exposes apply()/try_apply()
 src/config.rs      ProxyMode, ProxyServer, ProxyAuth, ProxyConfig (no I/O)
 ```
 
@@ -37,6 +38,7 @@ src/config.rs      ProxyMode, ProxyServer, ProxyAuth, ProxyConfig (no I/O)
 
 - Rust edition **2024**.
 - `unsafe { env::set_var(...) }` and `env::remove_var(...)` are intentional — these APIs are unsafe in Rust 2024. Do not refactor them away.
+- Error handling: `thiserror` for library error types, `anyhow` for the binary entry point. Prefer `Result<T, E>` over silently swallowing failures.
 - Some inline comments are in Chinese; preserve them when editing nearby code.
 - No formatter or linter config present — follow `cargo fmt` / `cargo clippy` defaults.
 

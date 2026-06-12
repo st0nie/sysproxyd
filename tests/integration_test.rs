@@ -214,7 +214,7 @@ fn test_env_manager_overwrite_config() {
 fn test_gsettings_availability() {
     let available = gsettings::is_available();
     if !available {
-        assert!(gsettings::read_config().is_none());
+        assert!(gsettings::read_config().is_err());
     }
 }
 
